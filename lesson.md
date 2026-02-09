@@ -157,7 +157,7 @@ stages:
 
 build-job:
   stage: build
-  image: maven:3.9-openjdk-21
+  image: maven:3.9-eclipse-temurin-21
   script:
     - mvn clean install
 ```
@@ -293,8 +293,12 @@ hello-cicd-app/
 │       └── java/
 │           └── com/
 │               └── example/
-│                   └── HelloController.java
+│                   └── hellocicdapp/
+│                       ├── HelloCicdAppApplication.java
+│                       └── controller/
+│                           └── HelloController.java
 ├── Dockerfile
+├── .dockerignore
 ├── pom.xml
 └── .gitlab-ci.yml
 ```
@@ -303,22 +307,31 @@ hello-cicd-app/
 
 ### Step 1: Simple Spring Boot Application
 
-**HelloController.java:**
+**HelloCicdAppApplication.java (Main Application Class):**
 ```java
-package com.example;
+package com.example.hellocicdapp;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class HelloCicdAppApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(HelloCicdAppApplication.class, args);
+    }
+}
+```
+
+**HelloController.java (REST Controller):**
+```java
+package com.example.hellocicdapp.controller;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@SpringBootApplication
 @RestController
 public class HelloController {
-
-    public static void main(String[] args) {
-        SpringApplication.run(HelloController.class, args);
-    }
 
     @GetMapping("/hello")
     public String hello() {
@@ -329,19 +342,54 @@ public class HelloController {
 
 **Dockerfile:**
 ```dockerfile
-# Use Maven to build the application
-FROM maven:3.9-openjdk-21 AS build
+# Build stage
+FROM eclipse-temurin:21-jdk-alpine AS build
 WORKDIR /app
 COPY pom.xml .
 COPY src ./src
+RUN apk add --no-cache maven
 RUN mvn clean package -DskipTests
 
-# Run the application
-FROM openjdk:21-jdk-slim
+# Runtime stage
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+CMD ["java", "-jar", "app.jar"]
+```
+
+**.dockerignore:**
+```
+# Maven
+target/
+!target/*.jar
+.mvn/
+mvnw
+mvnw.cmd
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
 ```
 
 **pom.xml:**
@@ -392,30 +440,61 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 
 ---
 
-### Step 2: GitLab CI/CD Configuration
+### Step 2: Test Docker Build Locally (Before GitLab)
+
+**Before setting up GitLab CI/CD, verify everything works locally:**
+
+```bash
+# Step 1: Build the JAR file
+mvn clean package -DskipTests
+
+# Step 2: Build Docker image
+docker build -t hello-cicd-app .
+
+# Step 3: Run container
+docker run -d -p 8080:8080 --name hello-cicd hello-cicd-app
+
+# Step 4: Test endpoint
+curl http://localhost:8080/hello
+# Should see: "Hello from GitLab CI/CD Demo!"
+
+# Step 5: Cleanup
+docker stop hello-cicd
+docker rm hello-cicd
+```
+
+**If this works, proceed to GitLab setup. If not, fix issues before continuing.**
+
+---
+
+### Step 3: GitLab CI/CD Configuration
 
 **`.gitlab-ci.yml` (compare with your CircleCI config):**
 
 ```yml
-# Define the stages of the pipeline
+# GitLab CI/CD Pipeline Configuration
+# This pipeline has 3 stages: build, test, publish
+
 stages:
   - build
   - test
   - publish
 
-# Define variables
+# Variables used across all jobs
 variables:
   MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
 
-# Cache Maven dependencies
+# Cache Maven dependencies to speed up builds
 cache:
   paths:
     - .m2/repository
 
-# Build job - compile and package the application
-build-job:
+# ==========================================
+# BUILD JOB - Compile and package
+# ==========================================
+build:
   stage: build
-  image: maven:3.9-openjdk-21
+  image: maven:3.9-eclipse-temurin-21
   script:
     - echo "Building the application..."
     - mvn clean install -DskipTests
@@ -424,10 +503,12 @@ build-job:
       - target/*.jar
     expire_in: 1 hour
 
-# Test job - run unit tests
-test-job:
+# ==========================================
+# TEST JOB - Run automated tests
+# ==========================================
+test:
   stage: test
-  image: maven:3.9-openjdk-21
+  image: maven:3.9-eclipse-temurin-21
   script:
     - echo "Running tests..."
     - mvn test
@@ -435,31 +516,140 @@ test-job:
     reports:
       junit: target/surefire-reports/TEST-*.xml
 
-# Publish job - build and push Docker image
-publish-job:
+# ==========================================
+# PUBLISH JOB - Build and push Docker image
+# ==========================================
+publish:
   stage: publish
   image: docker:latest
   services:
     - docker:dind
   before_script:
-    - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+    - echo "Logging in to Docker Hub..."
+    - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
   script:
     - echo "Building Docker image..."
     - docker build -t $DOCKER_USERNAME/hello-cicd-app:latest .
     - echo "Pushing to Docker Hub..."
     - docker push $DOCKER_USERNAME/hello-cicd-app:latest
-  only:
-    - main
 ```
-
-**Note:** The `$DOCKER_USERNAME` and `$DOCKER_PASSWORD` variables need to be configured in GitLab:
-- Go to Settings → CI/CD → Variables
-- Add `DOCKER_USERNAME` (your Docker Hub username)
-- Add `DOCKER_PASSWORD` (your Docker Hub password, mark as Protected and Masked)
 
 ---
 
-### Step 3: Comparing GitLab CI/CD with CircleCI
+### Step 4: GitLab Setup Instructions
+
+**A. Create GitLab Account and Repository**
+
+1. Go to [https://gitlab.com](https://gitlab.com)
+2. Click **"Register now"** and sign up
+3. Verify your email address
+4. Click **"Create a project"** → **"Create blank project"**
+5. Enter:
+   - **Project name:** `hello-cicd-app`
+   - **Visibility:** Public
+   - **Initialize with README:** UNCHECKED
+6. Click **"Create project"**
+
+---
+
+**B. Add Environment Variables in GitLab**
+
+1. In your GitLab project, go to **Settings** → **CI/CD**
+2. Find **"Variables"** section → Click **"Expand"**
+3. Click **"Add variable"**
+
+**Variable 1:**
+- **Key:** `DOCKER_USERNAME`
+- **Value:** Your Docker Hub username
+- **Environments:** All (default)
+- **Protect variable:** UNCHECKED ❌
+- **Mask variable:** UNCHECKED
+- Click **"Add variable"**
+
+**Variable 2:**
+- **Key:** `DOCKER_PASSWORD`
+- **Value:** Your Docker Hub password
+- **Environments:** All (default)
+- **Protect variable:** UNCHECKED ❌
+- **Mask variable:** CHECKED ✅
+- Click **"Add variable"**
+
+**⚠️ CRITICAL:** Make sure **"Environments"** is set to **"All (default)"**, NOT a specific environment name. If set to a specific environment, variables won't be available and pipeline will fail with "username is empty" error.
+
+---
+
+**C. Push Code to GitLab**
+
+```bash
+# Initialize git (if not already done)
+git init
+
+# Add all files
+git add .
+git commit -m "Initial commit: Spring Boot app with GitLab CI/CD"
+
+# Add GitLab remote (replace YOUR_USERNAME)
+git remote add origin https://gitlab.com/YOUR_USERNAME/hello-cicd-app.git
+
+# Push to GitLab
+git branch -M main
+git push -u origin main
+```
+
+**Enter your GitLab username and password when prompted.**
+
+---
+
+**D. Watch Pipeline Run**
+
+1. Go to your GitLab project
+2. Click **"Build"** → **"Pipelines"** (left sidebar)
+3. You should see pipeline running:
+   - 🔵 build (running/passed)
+   - 🔵 test (running/passed)
+   - 🔵 publish (running/passed)
+
+**Timeline:**
+- Build: ~2-3 minutes
+- Test: ~1-2 minutes
+- Publish: ~2-3 minutes
+- **Total: ~5-8 minutes**
+
+---
+
+**E. Verify on Docker Hub**
+
+1. Go to [https://hub.docker.com](https://hub.docker.com)
+2. Login
+3. Check your repositories
+4. You should see `hello-cicd-app` with tag `latest`
+
+---
+
+### Step 5: Troubleshooting
+
+**Issue 1: Pipeline fails at "publish" job with "username is empty"**
+
+**Cause:** Environment variables not set correctly in GitLab.
+
+**Solution:**
+1. Go to Settings → CI/CD → Variables
+2. Check both `DOCKER_USERNAME` and `DOCKER_PASSWORD` exist
+3. **CRITICAL:** Click on each variable → Check **"Environments"** field
+4. If it shows a specific environment name (like "DOCKER_USERNAME"), change it to **"All (default)"**
+5. Make sure **"Protect variable"** is UNCHECKED
+6. Save changes
+7. Retry the pipeline
+
+**Issue 2: Pipeline fails with "manifest for maven:3.9-openjdk-21 not found"**
+
+**Cause:** Base image doesn't exist.
+
+**Solution:** Use `maven:3.9-eclipse-temurin-21` instead in `.gitlab-ci.yml`
+
+---
+
+### Step 6: Comparing GitLab CI/CD with CircleCI
 
 **Observe these differences:**
 
@@ -475,31 +665,7 @@ publish-job:
 
 ---
 
-### Step 4: Running the Pipeline
-
-**Instructor will demonstrate:**
-
-1. **Push code to GitLab**
-   ```bash
-   git remote add gitlab git@gitlab.com:username/hello-cicd-app.git
-   git push gitlab main
-   ```
-
-2. **Pipeline triggers automatically**
-   - GitLab detects `.gitlab-ci.yml`
-   - Starts running the pipeline
-
-3. **Watch the pipeline**
-   - Navigate to: CI/CD → Pipelines
-   - See build → test → publish running in sequence
-
-4. **View logs**
-   - Click on each job to see output
-   - Compare with CircleCI logs you saw in Lesson 7
-
----
-
-### Step 5: Key Observations
+### Step 7: Key Observations
 
 **What's Similar:**
 - YAML-based configuration
@@ -693,81 +859,7 @@ You will receive 4 company scenario cards. For each scenario:
 4. ✅ Similarities and differences in configurations
 5. ✅ How to evaluate and select CI/CD tools
 
-### Key Takeaways
-
-**1. Core concepts are universal:**
-- Build → Test → Publish pipeline
-- YAML/config-based definitions
-- Jobs, stages, workflows
-- Environment variables for secrets
-
-**2. Choose tools based on context:**
-- Team size and expertise
-- Infrastructure (cloud vs on-premise)
-- Budget and licensing
-- Existing tech stack
-
-**3. Don't overthink it:**
-- For learning: Any popular tool works (CircleCI, GitLab, GitHub Actions)
-- For startups: Choose easy cloud-based tools
-- For enterprises: Consider security and customization needs
-
-**4. You can always switch:**
-- Core skills transfer between tools
-- Migration is possible (though has cost)
-- Many companies use multiple tools
-
----
-
-## Next Steps
-
-In the next lesson (Lesson 10: Hosting Options), we'll explore:
-- Different platforms for hosting applications (like Render, Railway, Fly.io)
-- Hosting databases (PostgreSQL options)
-- Comparing hosting platforms
-
-Then in Lesson 12, you'll set up Continuous Deployment (CD) using CircleCI to automatically deploy your devops-demo application!
-
----
-
-## Additional Resources
-
-### Official Documentation
-- [CircleCI Docs](https://circleci.com/docs/)
-- [GitLab CI/CD Docs](https://docs.gitlab.com/ee/ci/)
-- [Jenkins Documentation](https://www.jenkins.io/doc/)
-- [Azure DevOps Docs](https://learn.microsoft.com/en-us/azure/devops/)
-
-### Comparison Articles
-- [CI/CD Tools Comparison 2024](https://www.jetbrains.com/teamcity/ci-cd-guide/ci-cd-tools/)
-- [Choosing the Right CI/CD Tool](https://www.digitalocean.com/community/tutorials/ci-cd-tools-comparison-jenkins-gitlab-ci-circle-ci-travis-ci-codeship-teamcity-bamboo)
-
-### Video Tutorials
-- [GitLab CI/CD in 20 Minutes](https://www.youtube.com/watch?v=qP8kir2GUgo)
-- [Jenkins vs GitLab CI vs GitHub Actions](https://www.youtube.com/watch?v=3a8KsB5wJDE)
-
----
-
-## Glossary
-
-**Pipeline:** A series of automated steps that code goes through from commit to deployment
-
-**Stage:** A logical grouping of jobs (e.g., build stage, test stage)
-
-**Job:** A single task within a pipeline (e.g., compile code, run tests)
-
-**Runner:** A server that executes CI/CD jobs
-
-**Artifact:** Output from a job that's saved and passed to other jobs
-
-**Self-Hosted:** Software that you install and run on your own servers
-
-**SaaS (Software as a Service):** Cloud-based software that you access via internet
-
-**On-Premise:** Software installed and run on your company's own infrastructure
-
----
 
 
 
-**Great job!** You now understand the CI/CD tool landscape and can make informed decisions about which tool to use for different projects.
+
