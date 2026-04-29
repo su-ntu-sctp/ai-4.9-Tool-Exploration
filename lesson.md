@@ -3,17 +3,17 @@
 ## Learning Objectives
 
 By the end of this lesson, you will be able to:
-1. Identify different CI/CD tools available in the market
-2. Compare and contrast CircleCI, GitLab CI/CD, Jenkins, and Azure DevOps
-3. Understand when to use which CI/CD tool based on project requirements
-4. Recognize the similarities and differences in CI/CD configurations across tools
+1. **Identify** different CI/CD tools available in the market
+2. **Compare** and contrast CircleCI, GitLab CI/CD, Jenkins, and Azure DevOps
+3. **Select** the appropriate CI/CD tool based on project requirements
+4. **Recognise** the similarities and differences in CI/CD configurations across tools
 
 ---
 
 ## Prerequisites
 
 Before starting this lesson, you should have:
-- Completed Lesson 7 (Continuous Integration with CircleCI)
+- Completed Lesson 4.7 (Continuous Integration with CircleCI)
 - Understanding of CI/CD concepts
 - Familiarity with YAML configuration files
 - Basic knowledge of Docker
@@ -22,7 +22,7 @@ Before starting this lesson, you should have:
 
 ## Introduction
 
-In Lesson 7, you learned about Continuous Integration using CircleCI. But CircleCI is just one of many CI/CD tools available today. 
+In Lesson 4.7, you learned about Continuous Integration using CircleCI. But CircleCI is just one of many CI/CD tools available today.
 
 **Key Questions:**
 - Why are there so many CI/CD tools?
@@ -274,6 +274,18 @@ steps:
 | **Free for Students** | Yes | Yes | Yes (unlimited) | Yes |
 | **Requires Server** | No | No | Yes | No |
 | **Best For** | Startups | GitLab users | Enterprises | Microsoft shops |
+
+---
+
+### 🏃 Activity 1 — Tool Matching Discussion (10 min)
+
+Based on what you've just read, discuss the following with a partner:
+
+1. You're joining a startup that uses GitHub and has no DevOps team. Which tool would you recommend and why?
+2. A large bank tells you they cannot send any code or data to third-party cloud servers. Which tool is the only viable option?
+3. Looking at the four configuration examples — CircleCI, GitLab, Jenkins, and Azure DevOps — which syntax feels most familiar to you and why?
+
+> **Key takeaway:** There's no single "best" tool — the right choice depends on the team, infrastructure, and budget.
 
 ---
 
@@ -636,7 +648,7 @@ git push -u origin main
 1. Go to Settings → CI/CD → Variables
 2. Check both `DOCKER_USERNAME` and `DOCKER_PASSWORD` exist
 3. **CRITICAL:** Click on each variable → Check **"Environments"** field
-4. If it shows a specific environment name (like "DOCKER_USERNAME"), change it to **"All (default)"**
+4. If it shows a specific environment name, change it to **"All (default)"**
 5. Make sure **"Protect variable"** is UNCHECKED
 6. Save changes
 7. Retry the pipeline
@@ -686,7 +698,6 @@ git push -u origin main
 
 ## Part 4 - Hands-On Activity: Tool Selection
 
-**Time:** 15 minutes  
 **Format:** Small groups (3-4 students)
 
 ### Instructions
@@ -854,12 +865,7 @@ You will receive 4 company scenario cards. For each scenario:
 ### What You Learned
 
 1. ✅ CI/CD tool landscape and categories
-2. ✅ Comparison of CircleCI, GitLab CI/CD, Jenkins, Azure DevOps
+2. ✅ Comparison of CircleCI, GitLab CI/CD, Jenkins, and Azure DevOps
 3. ✅ When to use which tool based on requirements
 4. ✅ Similarities and differences in configurations
 5. ✅ How to evaluate and select CI/CD tools
-
-
-
-
-
