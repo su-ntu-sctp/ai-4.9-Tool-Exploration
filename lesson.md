@@ -370,6 +370,8 @@ EXPOSE 8080
 CMD ["java", "-jar", "app.jar"]
 ```
 
+> **FYI note (informational only — nothing to change here):** This Dockerfile gets Maven onto the build stage by installing it directly via Alpine's package manager (`apk add --no-cache maven`) on top of the JDK-Alpine image. That's different from the multi-stage Dockerfiles in Lessons 4.4, 4.6, and 4.8, which instead start the build stage from a dedicated `maven:3.9-eclipse-temurin-21` image that already has Maven built in. Both approaches are valid and this file works exactly as written — this note is just here so you're aware there's more than one way to get Maven into a build stage, in case a sharp-eyed student asks why this lesson does it differently.
+
 **.dockerignore:**
 ```
 # Maven
@@ -545,6 +547,8 @@ publish:
     - echo "Pushing to Docker Hub..."
     - docker push $DOCKER_USERNAME/hello-cicd-app:latest
 ```
+
+> **FYI note (informational only — nothing to change here):** The `docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"` line above works as written. For awareness only: Lesson 4.7's CircleCI config used a slightly different pattern for the same step — `echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin` — which avoids passing the password as a command-line flag. Both patterns log in successfully; this is just flagged so you know the two lessons demonstrate two different (both valid) ways of doing the same `docker login` step. Also for awareness: if the Docker Hub account used here has 2FA enabled, `DOCKER_PASSWORD` would need to be a Docker Hub Access Token rather than the account password — the same point noted in Lesson 4.7.
 
 ---
 
