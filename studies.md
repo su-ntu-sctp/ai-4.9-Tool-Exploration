@@ -8,69 +8,79 @@
 
 ---
 
-## Task 1 — CI/CD Tools Comparison (25 minutes)
+## Task 1 — The CI/CD Tool Landscape (25 minutes)
 
 Watch the following video on CI/CD tools:
 
 - 📹 [CI/CD Tools Comparison — https://www.youtube.com/watch?v=_DRtZVE9y0A]
 
-While watching, refer to **lesson.md Part 1 and Part 2** and pay attention to:
-- Why different CI/CD tools exist and what problems they solve
-- How cloud-based tools differ from self-hosted tools
-- What factors teams consider when choosing a CI/CD tool
-- How the pipeline configuration differs across tools
+While watching, refer to **lesson.md Part 1** and sort every tool you hear about into one of the three types:
+- **Platform-integrated** — CI/CD built into the Git platform (e.g. GitHub Actions, GitLab CI/CD)
+- **Managed CI service (SaaS)** — a separate CI company runs it for you (e.g. CircleCI, Travis CI)
+- **Self-hosted** — you install and run the CI server yourself (e.g. Jenkins, TeamCity)
+
+> Don't worry about pricing, free-tier limits or feature lists — they change often. Focus on **who runs the tool** and **when you would choose it**.
 
 **Guiding Questions:**
-1. What is the main difference between a cloud-based CI/CD tool and a self-hosted one?
-2. Which tool would you recommend to a team that has strict data security requirements and why?
-3. What do all CI/CD tools have in common regardless of their syntax or hosting model?
+1. What is the main difference between a managed CI service and a self-hosted one?
+2. Which type of tool would you recommend to a team with strict data security requirements, and why?
+3. What do all CI/CD tools have in common, regardless of their syntax or how they are hosted?
 
 ---
 
-## Task 2 — Compare Configuration Syntax (20 minutes)
+## Task 2 — Get Ready for GitHub Actions (25 minutes)
 
-No video for this task. Refer to **lesson.md Part 2** and read through the four configuration examples — CircleCI, GitLab CI/CD, Jenkins, and Azure DevOps — then answer the following:
+In class you will add a GitHub Actions workflow to the devops-demo project and compare it with your CircleCI pipeline from Lesson 4.7.
 
-1. Which two tools use the most similar YAML structure? What are the key differences between them?
-2. Jenkins uses Groovy instead of YAML — what do you think are the advantages and disadvantages of this?
-3. Looking at the GitLab CI/CD example, how does the `stages:` concept differ from CircleCI's `workflows:`?
-4. If you had to switch your devops-demo project from CircleCI to GitLab CI/CD today, what parts of the config would need to change?
+**Read:**
+- [Understanding GitHub Actions — GitHub Docs](https://docs.github.com/en/actions/get-started/understand-github-actions) — focus on the components: workflows, events, jobs, actions and runners
 
-**Guiding Questions:**
-1. Why do you think most modern CI/CD tools chose YAML over other formats?
-2. What does `image:` in GitLab CI/CD correspond to in CircleCI?
-3. How does GitLab CI/CD know the order jobs should run without an explicit `requires:` like CircleCI?
+**Review:**
+- Your Lesson 4.7 `.circleci/config.yml` — make sure you can explain what each of the three jobs (build, test, publish) does
+
+Then answer the following:
+
+1. In GitHub Actions, where must a workflow file be saved?
+2. What is an **event**? Which event will start our workflow in class?
+3. What is a **runner**? What does it correspond to in CircleCI?
+4. What is an **action** (`uses:`)? Which CircleCI step does `actions/checkout` replace?
+
+**Before class, make sure you:**
+- Can log in to your personal **GitHub** account and your **Docker Hub** account
+- Know how to create a Docker Hub personal access token (you did this in Lesson 4.7)
+- Have Java 21, Maven and Git working in your terminal (Windows users: WSL)
 
 ---
 
-## Task 3 — Tool Selection Practice (20 minutes)
+## Task 3 — Tool Selection Practice (15 minutes)
 
 No video for this task. Read through the four company scenarios in **lesson.md Part 4** before class and for each scenario write down:
 
-1. Which CI/CD tool you would recommend
+1. Which **type** of CI/CD tool you would recommend, and one tool of that type
 2. Two reasons that justify your choice
-3. One potential disadvantage of your chosen tool for that scenario
+3. One trade-off of your chosen type for that scenario
 
 Come to class with your answers ready to discuss — the activity will be done in groups, so having your own thoughts prepared first will help the discussion.
 
 **Guiding Questions:**
-1. Is there ever a scenario where more than one tool could be a valid choice? How would you decide?
-2. What questions would you ask a client before recommending a CI/CD tool?
-3. As a DevOps engineer, why is it important to understand multiple tools rather than just one?
+1. Is there ever a scenario where more than one type could be a valid choice? How would you decide?
+2. What questions would you ask a team before recommending a CI/CD tool?
+3. As a DevOps engineer, why is it useful to understand the concepts behind CI/CD rather than just one tool?
 
 ---
 
 ## Active Engagement Strategies
 
-- Pause the video when a tool is being compared and try to recall what you already know about it from Lesson 4.7
-- After watching, try to list the four tools and one key strength of each from memory
+- Pause the video each time a new tool is mentioned and decide which of the three types it belongs to
+- After Task 2, try to sketch the GitHub Actions version of one CircleCI job from memory — you'll check your guess in class
 - For Tasks 2 and 3, write your answers before class — do not just read through the content
 
 ---
 
 ## Additional Reading Material
 
-- [CI/CD Tools Comparison — Atlassian](https://www.atlassian.com/continuous-delivery/principles/continuous-integration-vs-delivery-vs-deployment)
-- [Jenkins Overview — Jenkins Docs](https://www.jenkins.io/doc/)
-- [GitLab CI/CD Overview — GitLab Docs](https://docs.gitlab.com/ee/ci/)
-- [Azure DevOps Overview — Microsoft Docs](https://learn.microsoft.com/en-us/azure/devops/pipelines/get-started/what-is-azure-pipelines)
+- [Understanding GitHub Actions — GitHub Docs](https://docs.github.com/en/actions/get-started/understand-github-actions)
+- [Using secrets in GitHub Actions — GitHub Docs](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets)
+- [CircleCI Documentation](https://circleci.com/docs/)
+- [GitLab CI/CD Documentation](https://docs.gitlab.com/ci/)
+- [Jenkins Documentation](https://www.jenkins.io/doc/)

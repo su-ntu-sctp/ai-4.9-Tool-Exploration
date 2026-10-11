@@ -3,10 +3,10 @@
 ## Learning Objectives
 
 By the end of this lesson, you will be able to:
-1. **Identify** different CI/CD tools available in the market
-2. **Compare** and contrast CircleCI, GitLab CI/CD, Jenkins, and Azure DevOps
-3. **Select** the appropriate CI/CD tool based on project requirements
-4. **Recognise** the similarities and differences in CI/CD configurations across tools
+1. **Identify** the three main types of CI/CD tools: platform-integrated, managed CI services and self-hosted
+2. **Explain** the trade-offs of each type of tool
+3. **Select** the right type of tool, and a tool within it, for a given use case
+4. **Build** a GitHub Actions workflow for the devops-demo project and **compare** it with your CircleCI workflow
 
 ---
 
@@ -14,266 +14,141 @@ By the end of this lesson, you will be able to:
 
 Before starting this lesson, you should have:
 - Completed Lesson 4.7 (Continuous Integration with CircleCI)
-- Understanding of CI/CD concepts
-- Familiarity with YAML configuration files
-- Basic knowledge of Docker
+- A personal GitHub account
+- A Docker Hub account
+- Java 21, Maven and Git installed
 
 ---
 
 ## Introduction
 
-In Lesson 4.7, you learned about Continuous Integration using CircleCI. But CircleCI is just one of many CI/CD tools available today.
+In Lesson 4.7, you built a CI pipeline with CircleCI. But CircleCI is just one of many CI/CD tools available today.
 
 **Key Questions:**
 - Why are there so many CI/CD tools?
-- How do they differ?
+- How are they different from each other?
 - How do you choose the right tool for your project?
 
-In this lesson, we'll explore alternative CI/CD tools and understand their strengths and trade-offs.
+The good news: every CI/CD tool is built on the same ideas you already know. Once you understand **what type** of tool you need, picking a specific tool becomes much easier.
 
 ---
 
 ## Part 1 - Understanding the CI/CD Tool Landscape
 
-### Why Multiple CI/CD Tools Exist
+### Same Concepts, Different Tools
 
-Different organizations have different needs:
+Every CI/CD tool does the same basic job:
 
-**1. Company Size:**
-- Startups need quick, easy setup (CircleCI, GitLab CI/CD)
-- Large enterprises need control and customization (Jenkins, Azure DevOps)
+```
+Code pushed to Git
+   ↓
+Tool detects the change (trigger)
+   ↓
+Jobs run on a machine called a runner (build → test → publish)
+   ↓
+Results reported back (pass / fail)
+```
 
-**2. Infrastructure:**
-- Cloud-first companies prefer SaaS tools (CircleCI, GitLab CI/CD)
-- Companies with security requirements need on-premise (Jenkins)
+They all use the same building blocks: **triggers**, **jobs**, **steps**, **runners** and **secrets**. What changes from tool to tool is:
+- **Who runs the tool** - your Git platform, a separate company, or you
+- **The configuration syntax** - the file name and the keywords
 
-**3. Existing Tech Stack:**
-- GitHub users → GitHub Actions
-- GitLab users → GitLab CI/CD
-- Microsoft shops → Azure DevOps
-- Java/Enterprise → Jenkins
+### Three Types of CI/CD Tools
 
-**4. Budget:**
-- Open-source/free → Jenkins, GitLab (self-hosted)
-- Paid SaaS → CircleCI, Azure DevOps (premium features)
+The most useful way to compare CI/CD tools is by **who runs the tool and where it lives**.
 
-### Categories of CI/CD Tools
-
-**1. Cloud-Based SaaS:**
-- CircleCI, GitLab CI/CD, GitHub Actions, Travis CI
-- Easy setup, no maintenance
-- Pay per usage or monthly plans
-
-**2. Self-Hosted / On-Premise:**
-- Jenkins, GitLab (self-hosted), TeamCity
-- Full control, host on your servers
-- Require maintenance and setup
-
-**3. Platform-Integrated:**
-- GitLab CI/CD (integrated with GitLab)
-- GitHub Actions (integrated with GitHub)
-- Bitbucket Pipelines (integrated with Bitbucket)
-
----
-
-## Part 2 - Comparing Four Popular CI/CD Tools
-
-Let's compare four widely-used CI/CD tools:
-
-### Tool Overview
-
-| Tool | Type | Best For | Free Tier | Difficulty |
-|------|------|----------|-----------|------------|
-| **CircleCI** | Cloud SaaS | Startups, quick setup | 6,000 build minutes/month | Easy |
-| **GitLab CI/CD** | Cloud/Self-hosted | Teams using GitLab | 400 minutes/month | Easy |
-| **Jenkins** | Self-hosted | Enterprises, customization | Unlimited (self-hosted) | Medium-Hard |
-| **Azure DevOps** | Cloud SaaS | Microsoft ecosystem | 1,800 minutes/month | Medium |
-
----
-
-### Detailed Comparison
-
-#### 1. CircleCI (What You're Using)
-
-**✅ Pros:**
-- Very easy to set up (you experienced this!)
-- Great documentation and UI
-- Fast build times with caching
-- Docker support built-in
-- Good free tier for small teams
-
-**❌ Cons:**
-- Can get expensive for larger teams
-- Limited customization compared to Jenkins
-- Depends on CircleCI's infrastructure
-
-**Best Use Cases:**
-- Startups and small-to-medium teams
-- Projects needing quick CI/CD setup
-- Teams wanting managed infrastructure
-
-**Configuration File:** `.circleci/config.yml`
-
-**Example (you've already used this):**
-```yml
-version: 2.1
-jobs:
-  build:
-    docker:
-      - image: cimg/openjdk:21.0
-    steps:
-      - checkout
-      - run: mvn clean install
+```
+┌──────────────────────────┐  ┌──────────────────────────┐  ┌──────────────────────────┐
+│   PLATFORM-INTEGRATED    │  │   MANAGED CI SERVICE     │  │       SELF-HOSTED        │
+│                          │  │         (SaaS)           │  │                          │
+│  CI is built into your   │  │  A separate CI company   │  │  You install and run     │
+│  Git platform            │  │  runs it for you         │  │  the CI server yourself  │
+│                          │  │                          │  │                          │
+│  • GitHub Actions        │  │  • CircleCI              │  │  • Jenkins               │
+│  • GitLab CI/CD          │  │  • Travis CI             │  │  • TeamCity              │
+│  • Bitbucket Pipelines   │  │                          │  │                          │
+└──────────────────────────┘  └──────────────────────────┘  └──────────────────────────┘
+   Easiest to start              Works with any Git host       Most control, most work
 ```
 
 ---
 
-#### 2. GitLab CI/CD
+#### 1. Platform-Integrated
 
-**✅ Pros:**
-- Integrated with GitLab (no account linking needed)
-- Works with both cloud and self-hosted GitLab
-- Built-in container registry
-- Auto DevOps features
-- Extensive free tier
+CI/CD is a feature of the platform that already hosts your code.
 
-**❌ Cons:**
-- Requires GitLab as your Git platform
-- Free tier minutes more limited than CircleCI
-- Less popular than GitHub ecosystem
+**Examples:** GitHub Actions (GitHub), GitLab CI/CD (GitLab), Bitbucket Pipelines (Bitbucket)
 
-**Best Use Cases:**
-- Teams already using GitLab for version control
-- Organizations wanting all-in-one DevOps platform
-- Projects needing integrated container registry
+**✅ Why choose it:**
+- Nothing extra to sign up for or connect - it lives next to your code
+- Pipeline results show up directly in commits and pull requests
+- Large libraries of ready-made steps (for example, GitHub Actions has the Actions Marketplace)
 
-**Configuration File:** `.gitlab-ci.yml`
+**❌ Trade-offs:**
+- Tied to that platform - move from GitHub to GitLab and you rewrite your pipelines
 
-**Example (very similar to CircleCI):**
-```yml
-stages:
-  - build
-  - test
-
-build-job:
-  stage: build
-  image: maven:3.9-eclipse-temurin-21
-  script:
-    - mvn clean install
-```
-
-**Key Difference from CircleCI:**
-- Uses `stages` instead of `workflows`
-- Jobs are grouped by stages
-- Built-in to GitLab (no separate account)
+**Choose it when:** you want the simplest setup and you are happy to stay on your current Git platform. For most teams, this is the default starting point.
 
 ---
 
-#### 3. Jenkins
+#### 2. Managed CI Service (SaaS)
 
-**✅ Pros:**
-- Most popular CI/CD tool (huge community)
-- Completely free and open-source
-- Unlimited build minutes (you host it)
-- Extremely customizable with 1,800+ plugins
-- Can run on your own servers (security/compliance)
+A company whose main product is CI/CD. It connects to your Git platform and runs your pipelines on its own machines.
 
-**❌ Cons:**
-- Requires server setup and maintenance
-- Steeper learning curve
-- UI feels dated compared to modern tools
-- You manage updates, security, backups
+**Examples:** CircleCI (what you used in Lesson 4.7), Travis CI
 
-**Best Use Cases:**
-- Large enterprises with dedicated DevOps teams
-- Companies with strict security/compliance needs
-- Organizations wanting full control
-- Teams with existing Jenkins expertise
+**✅ Why choose it:**
+- Works with more than one Git platform (GitHub, GitLab, Bitbucket)
+- Focused on CI/CD, with features such as fast caching, test insights and a dedicated dashboard
+- No servers to maintain
 
-**Configuration File:** `Jenkinsfile`
+**❌ Trade-offs:**
+- One more account, vendor and set of permissions to manage
+- Your code and secrets are sent to a third party
 
-**Example (more complex syntax):**
-```groovy
-pipeline {
-    agent any
-    stages {
-        stage('Build') {
-            steps {
-                sh 'mvn clean install'
-            }
-        }
-        stage('Test') {
-            steps {
-                sh 'mvn test'
-            }
-        }
-    }
-}
-```
-
-**Key Differences:**
-- Uses Groovy language (not YAML)
-- Requires Jenkins server installation
-- More verbose configuration
+**Choose it when:** you need one CI tool across different Git platforms, or you need CI-specific features that your Git platform does not offer.
 
 ---
 
-#### 4. Azure DevOps
+#### 3. Self-Hosted
 
-**✅ Pros:**
-- Integrated with Microsoft ecosystem (Azure, Visual Studio)
-- Combines CI/CD, boards, repos, artifacts
-- Good Windows/.NET support
-- Generous free tier for small teams
-- Enterprise features built-in
+You install the CI server on your own machines (on-premise or in your own cloud account) and look after it yourself.
 
-**❌ Cons:**
-- Overkill if not using Microsoft stack
-- More complex than CircleCI/GitLab
-- Less popular for non-Microsoft projects
+**Examples:** Jenkins, TeamCity
 
-**Best Use Cases:**
-- Companies using Azure cloud
-- .NET/C# projects
-- Organizations wanting comprehensive ALM tool
-- Teams needing boards + CI/CD + repos together
+**✅ Why choose it:**
+- Full control over where code, data and builds live
+- Highly customisable (Jenkins has a very large plugin ecosystem)
+- Can run on special hardware or inside a private network
 
-**Configuration File:** `azure-pipelines.yml`
+**❌ Trade-offs:**
+- You maintain everything: servers, upgrades, plugins, security patches and backups
+- Needs people with the skills and time to run it
 
-**Example:**
-```yml
-trigger:
-  - main
-
-pool:
-  vmImage: 'ubuntu-latest'
-
-steps:
-- task: Maven@3
-  inputs:
-    mavenPomFile: 'pom.xml'
-    goals: 'clean install'
-```
-
-**Key Differences:**
-- Different syntax (tasks instead of steps)
-- Tight Azure integration
-- More enterprise-focused features
+**Choose it when:** rules require code and builds to stay on your own infrastructure, and you have a team to maintain it.
 
 ---
 
-### Quick Comparison Table
+> **Note - the lines can blur:** some tools offer more than one option. GitLab can be installed on your own servers (self-managed), and GitHub Actions and CircleCI both let you run jobs on your own machines (self-hosted runners). The type describes the tool's **usual** model - who runs it by default.
 
-| Feature | CircleCI | GitLab CI/CD | Jenkins | Azure DevOps |
-|---------|----------|--------------|---------|--------------|
-| **Setup Time** | 5 minutes | 5 minutes | 1-2 hours | 15 minutes |
-| **Hosting** | Cloud only | Cloud or self-hosted | Self-hosted | Cloud only |
-| **Language** | YAML | YAML | Groovy | YAML |
-| **Docker Support** | Excellent | Excellent | Via plugins | Good |
-| **Learning Curve** | Easy | Easy | Steep | Medium |
-| **Free for Students** | Yes | Yes | Yes (unlimited) | Yes |
-| **Requires Server** | No | No | Yes | No |
-| **Best For** | Startups | GitLab users | Enterprises | Microsoft shops |
+### How to Choose
+
+Ask these questions in order:
+
+```
+1. Must code and builds stay on our own servers (security / compliance)?
+      └─ Yes → Self-hosted (Jenkins, TeamCity)
+      └─ No  ↓
+
+2. Is all our code on one Git platform, and are we happy to stay there?
+      └─ Yes → Platform-integrated (GitHub Actions on GitHub, GitLab CI/CD on GitLab)
+      └─ No  ↓
+
+3. Do we need one CI tool across several Git platforms, or CI-specific features?
+      └─ Yes → Managed CI service (CircleCI, Travis CI)
+```
+
+One more question applies to every choice: **who will look after it?** A team with no DevOps engineers should avoid running its own CI server.
 
 ---
 
@@ -281,422 +156,489 @@ steps:
 
 Based on what you've just read, discuss the following with a partner:
 
-1. You're joining a startup that uses GitHub and has no DevOps team. Which tool would you recommend and why?
-2. A large bank tells you they cannot send any code or data to third-party cloud servers. Which tool is the only viable option?
-3. Looking at the four configuration examples — CircleCI, GitLab, Jenkins, and Azure DevOps — which syntax feels most familiar to you and why?
+1. You're joining a startup that keeps all its code on GitHub and has no DevOps team. Which type of tool would you recommend, and which tool?
+2. A large bank tells you no code or build data can be sent to third-party cloud servers. Which type of tool is the only viable option?
+3. A digital agency hosts client projects on GitHub, GitLab and Bitbucket. Why might a managed CI service suit them better than a platform-integrated tool?
 
-> **Key takeaway:** There's no single "best" tool — the right choice depends on the team, infrastructure, and budget.
-
----
-
-## Part 3 - GitLab CI/CD Demo
-
-**Note:** This is an **instructor-led demonstration**. You will observe and compare with your CircleCI experience. You don't need to set this up yourself.
-
-### Demo Application
-
-For this demo, we'll use a simple Spring Boot application called **hello-cicd-app**.
-
-**Project Structure:**
-```
-hello-cicd-app/
-├── src/
-│   └── main/
-│       └── java/
-│           └── com/
-│               └── example/
-│                   └── hellocicdapp/
-│                       ├── HelloCicdAppApplication.java
-│                       └── controller/
-│                           └── HelloController.java
-├── Dockerfile
-├── .dockerignore
-├── pom.xml
-└── .gitlab-ci.yml
-```
+> **Key takeaway:** There's no single "best" tool. Pick the **type** that fits your team, your Git platform and your rules, then pick a tool within that type.
 
 ---
 
-### Step 1: Simple Spring Boot Application
+## Part 2 - Hands-On: Build a GitHub Actions Workflow
 
-**HelloCicdAppApplication.java (Main Application Class):**
-```java
-package com.example.hellocicdapp;
+In Lesson 4.7 you built a **build → test → publish** pipeline for devops-demo with CircleCI (a managed CI service). Now you will build the **same pipeline** with GitHub Actions (a platform-integrated tool), so you can compare the two side by side.
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-
-@SpringBootApplication
-public class HelloCicdAppApplication {
-
-    public static void main(String[] args) {
-        SpringApplication.run(HelloCicdAppApplication.class, args);
-    }
-}
+```
+git push to main
+   ↓
+GitHub Actions starts the workflow
+   ↓
+build (package JAR) → test (mvn test) → publish (Docker image to Docker Hub)
 ```
 
-**HelloController.java (REST Controller):**
-```java
-package com.example.hellocicdapp.controller;
+### Step 1: Download the Project
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
+Download the project file for this lesson. Version `v4.9.0` contains the devops-demo application and its tests, but **no CI configuration files**.
 
-@RestController
-public class HelloController {
+For Windows users, use the WSL terminal only. For macOS users, use your preferred terminal. Run the following commands to set up your project.
 
-    @GetMapping("/hello")
-    public String hello() {
-        return "Hello from GitLab CI/CD Demo!";
-    }
-}
+```sh
+cd ~
+cd playground
+curl -L -O https://github.com/aie-devops/devops-demo/archive/refs/tags/v4.9.0.zip
+unzip v4.9.0.zip
+cd devops-demo-4.9.0
 ```
 
-**Dockerfile:**
-```dockerfile
-# Build stage
-FROM eclipse-temurin:21-jdk-alpine AS build
-WORKDIR /app
-COPY pom.xml .
-COPY src ./src
-RUN apk add --no-cache maven
-RUN mvn clean package -DskipTests
+Verify that the tests pass:
 
-# Runtime stage
-FROM eclipse-temurin:21-jre-alpine
-WORKDIR /app
-COPY --from=build /app/target/*.jar app.jar
-EXPOSE 8080
-CMD ["java", "-jar", "app.jar"]
+```sh
+mvn test
 ```
 
-> **FYI note (informational only — nothing to change here):** This Dockerfile gets Maven onto the build stage by installing it directly via Alpine's package manager (`apk add --no-cache maven`) on top of the JDK-Alpine image. That's different from the multi-stage Dockerfiles in Lessons 4.4, 4.6, and 4.8, which instead start the build stage from a dedicated `maven:3.9-eclipse-temurin-21` image that already has Maven built in. Both approaches are valid and this file works exactly as written — this note is just here so you're aware there's more than one way to get Maven into a build stage, in case a sharp-eyed student asks why this lesson does it differently.
-
-**.dockerignore:**
-```
-# Maven
-target/
-!target/*.jar
-.mvn/
-mvnw
-mvnw.cmd
-
-# Git
-.git/
-.gitignore
-
-# IDE
-.idea/
-*.iml
-.vscode/
-.settings/
-.classpath
-.project
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-
-# Docker
-Dockerfile
-docker-compose.yml
-.dockerignore
-```
-
-**pom.xml:**
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
-         http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-
-    <groupId>com.example</groupId>
-    <artifactId>hello-cicd-app</artifactId>
-    <version>1.0.0</version>
-    <packaging>jar</packaging>
-
-    <name>Hello CI/CD App</name>
-    <description>Simple Spring Boot app for CI/CD tool demonstration</description>
-
-    <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.0</version>
-        <relativePath/>
-    </parent>
-
-    <properties>
-        <java.version>21</java.version>
-    </properties>
-
-    <dependencies>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-    </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-            </plugin>
-        </plugins>
-    </build>
-</project>
-```
+You should see `BUILD SUCCESS` and `Tests run: ... Failures: 0, Errors: 0`.
 
 ---
 
-### Step 2: Test Docker Build Locally (Before GitLab)
+### Step 2: Create a New GitHub Repository
 
-**Before setting up GitLab CI/CD, verify everything works locally:**
-
-```bash
-# Step 1: Build the JAR file
-mvn clean package -DskipTests
-
-# Step 2: Build Docker image
-docker build -t hello-cicd-app .
-
-# Step 3: Run container
-docker run -d -p 8080:8080 --name hello-cicd hello-cicd-app
-
-# Step 4: Test endpoint
-curl http://localhost:8080/hello
-# Should see: "Hello from GitLab CI/CD Demo!"
-
-# Step 5: Cleanup
-docker stop hello-cicd
-docker rm hello-cicd
-```
-
-**If this works, proceed to GitLab setup. If not, fix issues before continuing.**
-
----
-
-### Step 3: GitLab CI/CD Configuration
-
-**`.gitlab-ci.yml` (compare with your CircleCI config):**
-
-```yml
-# GitLab CI/CD Pipeline Configuration
-# This pipeline has 3 stages: build, test, publish
-
-stages:
-  - build
-  - test
-  - publish
-
-# Variables used across all jobs
-variables:
-  MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
-
-# Cache Maven dependencies to speed up builds
-cache:
-  paths:
-    - .m2/repository
-
-# ==========================================
-# BUILD JOB - Compile and package
-# ==========================================
-build:
-  stage: build
-  image: maven:3.9-eclipse-temurin-21
-  script:
-    - echo "Building the application..."
-    - mvn clean install -DskipTests
-  artifacts:
-    paths:
-      - target/*.jar
-    expire_in: 1 hour
-
-# ==========================================
-# TEST JOB - Run automated tests
-# ==========================================
-test:
-  stage: test
-  image: maven:3.9-eclipse-temurin-21
-  script:
-    - echo "Running tests..."
-    - mvn test
-  artifacts:
-    reports:
-      junit: target/surefire-reports/TEST-*.xml
-
-# ==========================================
-# PUBLISH JOB - Build and push Docker image
-# ==========================================
-publish:
-  stage: publish
-  image: docker:latest
-  services:
-    - docker:dind
-  before_script:
-    - echo "Logging in to Docker Hub..."
-    - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
-  script:
-    - echo "Building Docker image..."
-    - docker build -t $DOCKER_USERNAME/hello-cicd-app:latest .
-    - echo "Pushing to Docker Hub..."
-    - docker push $DOCKER_USERNAME/hello-cicd-app:latest
-```
-
-> **FYI note (informational only — nothing to change here):** The `docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"` line above works as written. For awareness only: Lesson 4.7's CircleCI config used a slightly different pattern for the same step — `echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin` — which avoids passing the password as a command-line flag. Both patterns log in successfully; this is just flagged so you know the two lessons demonstrate two different (both valid) ways of doing the same `docker login` step. Also for awareness: if the Docker Hub account used here has 2FA enabled, `DOCKER_PASSWORD` would need to be a Docker Hub Access Token rather than the account password — the same point noted in Lesson 4.7.
-
----
-
-### Step 4: GitLab Setup Instructions
-
-**A. Create GitLab Account and Repository**
-
-1. Go to [https://gitlab.com](https://gitlab.com)
-2. Click **"Register now"** and sign up
-3. Verify your email address
-4. Click **"Create a project"** → **"Create blank project"**
-5. Enter:
-   - **Project name:** `hello-cicd-app`
+1. Go to [GitHub](https://github.com) and sign in to your **personal account**
+2. Click the **+** icon in the top-right corner → **New repository**
+3. Fill in the details:
+   - **Owner:** your **personal username** (not an organisation)
+   - **Repository name:** `devops-demo-lesson-4.9`
    - **Visibility:** Public
-   - **Initialize with README:** UNCHECKED
-6. Click **"Create project"**
+   - **Do NOT** add a README, .gitignore or license
+4. Click **Create repository**
+
+Keep this page open - you will need the repository URL in the next step.
 
 ---
 
-**B. Add Environment Variables in GitLab**
+### Step 3: Initialise Git and Push the Code
 
-1. In your GitLab project, go to **Settings** → **CI/CD**
-2. Find **"Variables"** section → Click **"Expand"**
-3. Click **"Add variable"**
-
-**Variable 1:**
-- **Key:** `DOCKER_USERNAME`
-- **Value:** Your Docker Hub username
-- **Environments:** All (default)
-- **Protect variable:** UNCHECKED ❌
-- **Mask variable:** UNCHECKED
-- Click **"Add variable"**
-
-**Variable 2:**
-- **Key:** `DOCKER_PASSWORD`
-- **Value:** Your Docker Hub password
-- **Environments:** All (default)
-- **Protect variable:** UNCHECKED ❌
-- **Mask variable:** CHECKED ✅
-- Click **"Add variable"**
-
-**⚠️ CRITICAL:** Make sure **"Environments"** is set to **"All (default)"**, NOT a specific environment name. If set to a specific environment, variables won't be available and pipeline will fail with "username is empty" error.
-
----
-
-**C. Push Code to GitLab**
+The project already includes a `.gitignore` file, so you can commit straight away.
 
 ```bash
-# Initialize git (if not already done)
+# Initialise a new Git repository
 git init
 
-# Add all files
+# Add and commit all files
 git add .
-git commit -m "Initial commit: Spring Boot app with GitLab CI/CD"
+git commit -m "Initial commit: devops-demo for Lesson 4.9"
 
-# Add GitLab remote (replace YOUR_USERNAME)
-git remote add origin https://gitlab.com/YOUR_USERNAME/hello-cicd-app.git
+# Connect to your GitHub repository (replace YOUR_USERNAME)
+git remote add origin https://github.com/YOUR_USERNAME/devops-demo-lesson-4.9.git
 
-# Push to GitLab
+# Push to the main branch
 git branch -M main
 git push -u origin main
 ```
 
-**Enter your GitLab username and password when prompted.**
+Refresh your repository page on GitHub - you should see your code. Click the **Actions** tab: nothing has run yet, because there is no workflow file.
 
 ---
 
-**D. Watch Pipeline Run**
+### Step 4: Create the GitHub Actions Workflow File
 
-1. Go to your GitLab project
-2. Click **"Build"** → **"Pipelines"** (left sidebar)
-3. You should see pipeline running:
-   - 🔵 build (running/passed)
-   - 🔵 test (running/passed)
-   - 🔵 publish (running/passed)
+GitHub Actions looks for workflow files in a fixed folder: `.github/workflows/`. Every `.yml` file in that folder is a workflow.
 
-**Timeline:**
-- Build: ~2-3 minutes
-- Test: ~1-2 minutes
-- Publish: ~2-3 minutes
-- **Total: ~5-8 minutes**
+```bash
+mkdir -p .github/workflows
+touch .github/workflows/ci.yml
+```
+
+Open `.github/workflows/ci.yml` in your editor. We'll build it in four pieces, matching your CircleCI config.
+
+#### Name and Trigger
+
+```yml
+name: build_test_publish
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+```
+
+- `name:` - the workflow name shown in the Actions tab (same name as your CircleCI workflow)
+- `on:` - the **trigger**: run this workflow on every push to `main`
+- `jobs:` - the jobs to run (added below)
+
+#### Job 1: Build
+
+```yml
+  # ==========================================
+  # BUILD JOB - Compile and package
+  # ==========================================
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Java 21 and cache Maven dependencies
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Install dependencies and build
+        run: |
+          echo "Building the application..."
+          mvn clean install -DskipTests
+
+      - name: Save JAR for the publish job
+        uses: actions/upload-artifact@v7
+        with:
+          name: app-jar
+          path: target/*.jar
+```
+
+**Understanding the build job:**
+- `runs-on: ubuntu-latest` - the **runner**: a fresh Ubuntu virtual machine provided by GitHub
+- `uses:` - runs an **action**, a ready-made step published by someone else
+  - `actions/checkout` - downloads your code (same as CircleCI's `checkout`)
+  - `actions/setup-java` - installs Java 21 and caches Maven dependencies (replaces CircleCI's `cimg/openjdk:21.0` image plus `restore_cache` / `save_cache`)
+  - `actions/upload-artifact` - saves the JAR so a later job can use it (replaces `persist_to_workspace`)
+- `run:` - runs a shell command (same as CircleCI's `run`)
+
+#### Job 2: Test
+
+```yml
+  # ==========================================
+  # TEST JOB - Run automated tests
+  # ==========================================
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Java 21 and cache Maven dependencies
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Run tests
+        run: |
+          echo "Running tests..."
+          mvn test
+
+      - name: Save test reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-reports
+          path: target/surefire-reports
+```
+
+**Understanding the test job:**
+- `needs: build` - only start after the build job succeeds (same as CircleCI's `requires: - build`)
+- Each job runs on a **new** runner, so we check out the code and set up Java again - just like CircleCI
+- `if: always()` - save the test reports even when tests fail, so you can see what went wrong (similar to CircleCI's `store_test_results` / `store_artifacts`)
+
+#### Job 3: Publish
+
+```yml
+  # ==========================================
+  # PUBLISH JOB - Build and push Docker image
+  # ==========================================
+  publish:
+    runs-on: ubuntu-latest
+    needs: test
+    env:
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Get JAR from the build job
+        uses: actions/download-artifact@v8
+        with:
+          name: app-jar
+          path: target
+
+      - name: Build Docker image
+        run: |
+          echo "Building Docker image..."
+          docker build -t $DOCKER_USERNAME/devops-demo:latest .
+
+      - name: Push to Docker Hub
+        run: |
+          echo "Logging in to Docker Hub..."
+          echo $DOCKER_TOKEN | docker login -u $DOCKER_USERNAME --password-stdin
+          echo "Pushing image to Docker Hub..."
+          docker push $DOCKER_USERNAME/devops-demo:latest
+```
+
+**Understanding the publish job:**
+- `needs: test` - only publish if the tests pass
+- `env:` - reads the Docker Hub credentials from **GitHub secrets** (you'll add these in Step 5) and makes them available as `$DOCKER_USERNAME` and `$DOCKER_TOKEN`, so the commands are exactly the same as in CircleCI
+- `actions/download-artifact` - puts the JAR back into `target/`, where the Dockerfile expects it (replaces `attach_workspace`)
+- No `setup_remote_docker` needed - Docker is already installed on GitHub's Ubuntu runners
 
 ---
 
-**E. Verify on Docker Hub**
+### Complete ci.yml File
 
-1. Go to [https://hub.docker.com](https://hub.docker.com)
-2. Login
-3. Check your repositories
-4. You should see `hello-cicd-app` with tag `latest`
+Here's your complete `.github/workflows/ci.yml`:
+
+```yml
+name: build_test_publish
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  # ==========================================
+  # BUILD JOB - Compile and package
+  # ==========================================
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Java 21 and cache Maven dependencies
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Install dependencies and build
+        run: |
+          echo "Building the application..."
+          mvn clean install -DskipTests
+
+      - name: Save JAR for the publish job
+        uses: actions/upload-artifact@v7
+        with:
+          name: app-jar
+          path: target/*.jar
+
+  # ==========================================
+  # TEST JOB - Run automated tests
+  # ==========================================
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Java 21 and cache Maven dependencies
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Run tests
+        run: |
+          echo "Running tests..."
+          mvn test
+
+      - name: Save test reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-reports
+          path: target/surefire-reports
+
+  # ==========================================
+  # PUBLISH JOB - Build and push Docker image
+  # ==========================================
+  publish:
+    runs-on: ubuntu-latest
+    needs: test
+    env:
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Get JAR from the build job
+        uses: actions/download-artifact@v8
+        with:
+          name: app-jar
+          path: target
+
+      - name: Build Docker image
+        run: |
+          echo "Building Docker image..."
+          docker build -t $DOCKER_USERNAME/devops-demo:latest .
+
+      - name: Push to Docker Hub
+        run: |
+          echo "Logging in to Docker Hub..."
+          echo $DOCKER_TOKEN | docker login -u $DOCKER_USERNAME --password-stdin
+          echo "Pushing image to Docker Hub..."
+          docker push $DOCKER_USERNAME/devops-demo:latest
+```
+
+> **Tip:** YAML is sensitive to indentation. Use spaces, not tabs, and make sure `build:`, `test:` and `publish:` line up under `jobs:`.
 
 ---
 
-### Step 5: Troubleshooting
+### Step 5: Add Docker Hub Secrets in GitHub
 
-**Issue 1: Pipeline fails at "publish" job with "username is empty"**
+The publish job needs your Docker Hub username and a personal access token. In CircleCI you stored these in the `docker-hub` **context**. In GitHub Actions you store them as **repository secrets**.
 
-**Cause:** Environment variables not set correctly in GitLab.
+**A. Create a Docker Hub personal access token**
 
-**Solution:**
-1. Go to Settings → CI/CD → Variables
-2. Check both `DOCKER_USERNAME` and `DOCKER_PASSWORD` exist
-3. **CRITICAL:** Click on each variable → Check **"Environments"** field
-4. If it shows a specific environment name, change it to **"All (default)"**
-5. Make sure **"Protect variable"** is UNCHECKED
-6. Save changes
-7. Retry the pipeline
+Create a new token for GitHub Actions rather than reusing your CircleCI token - one token per tool means you can revoke one without breaking the other.
 
-**Issue 2: Pipeline fails with "manifest for maven:3.9-openjdk-21 not found"**
+1. Log in to [Docker Hub](https://hub.docker.com/) and open **Account settings**
+2. Click **Personal access tokens** → **Generate new token**
+3. Description: `github-actions-devops-demo`
+4. Expiration date: `90 days`
+5. Access permissions: `Repo Read & Write`
+6. Click **Generate** and copy the token (you won't see it again)
 
-**Cause:** Base image doesn't exist.
+**B. Add the secrets to your GitHub repository**
 
-**Solution:** Use `maven:3.9-eclipse-temurin-21` instead in `.gitlab-ci.yml`
+1. Open your `devops-demo-lesson-4.9` repository on GitHub
+2. Click **Settings** → **Secrets and variables** → **Actions**
+3. Click **New repository secret** and add:
 
----
+| Name | Value |
+|------|-------|
+| `DOCKER_USERNAME` | Your Docker Hub username (e.g. `john123`) |
+| `DOCKER_TOKEN` | The personal access token you just created |
 
-### Step 6: Comparing GitLab CI/CD with CircleCI
-
-**Observe these differences:**
-
-| Aspect | CircleCI | GitLab CI/CD |
-|--------|----------|--------------|
-| **Stages/Workflows** | `workflows:` section | `stages:` at top level |
-| **Job Definition** | Under `jobs:` | Job name with stage |
-| **Dependencies** | `requires:` | Automatic by stage order |
-| **Docker Images** | `docker:` in job | `image:` in job |
-| **Caching** | `save_cache` / `restore_cache` | `cache:` at top level |
-| **Artifacts** | `persist_to_workspace` | `artifacts:` |
-| **Secrets** | Environment variables in UI | CI/CD variables in UI |
+Secret names are case-sensitive and must match the names used in `ci.yml` exactly.
 
 ---
 
-### Step 7: Key Observations
+### Step 6: Push the Workflow and Watch It Run
 
-**What's Similar:**
-- YAML-based configuration
-- Jobs run in Docker containers
-- Build → Test → Publish workflow
-- Environment variables for secrets
-- Caching for dependencies
+```bash
+git add .github/workflows/ci.yml
+git commit -m "Add GitHub Actions workflow"
+git push
+```
 
-**What's Different:**
-- GitLab uses "stages" vs CircleCI "workflows"
-- GitLab integrated with Git repository (no separate account)
-- Different syntax for artifacts and caching
-- GitLab has built-in container registry
+Pushing to `main` triggers the workflow:
 
-**Lesson:** Different tools, same concepts! Once you understand CI/CD, switching tools is just learning new syntax.
+1. Open your repository on GitHub and click the **Actions** tab
+2. Click the running workflow **build_test_publish**
+3. Watch the three jobs run in order: **build** → **test** → **publish**
+4. Click any job to see the log output of each step
+
+**All three jobs should show green checkmarks!** ✅
+
+Scroll to the bottom of the workflow summary page - under **Artifacts** you'll find `app-jar` and `test-reports`.
+
+---
+
+### Step 7: Verify on Docker Hub
+
+1. Go to [Docker Hub](https://hub.docker.com/) and log in
+2. Open your `devops-demo` repository
+3. You should see a new push of the `latest` tag
+
+> **Note:** This is the same image name your CircleCI pipeline pushed in Lesson 4.7, so this push replaces it. That's expected - both pipelines build the same application.
+
+**Success!** You now have the same pipeline running on two different CI tools. 🎉
+
+---
+
+### Troubleshooting
+
+**Issue 1: Nothing appears in the Actions tab**
+
+- The file must be at exactly `.github/workflows/ci.yml` (note the dot in `.github` and the `s` in `workflows`)
+- Check you pushed to `main` (`git branch` should show `* main`)
+- Check the YAML is valid - GitHub shows an error at the top of the Actions tab if it can't read the file
+
+**Issue 2: `git push` is rejected with "refusing to allow a Personal Access Token to create or update workflow ... without `workflow` scope"**
+
+Your GitHub personal access token can push code but not workflow files. Create a new token with the **workflow** scope (classic token) or **Workflows: Read and write** permission (fine-grained token), then push again.
+
+**Issue 3: Publish job fails at Docker login (`unauthorized` or `username is empty`)**
+
+- Check both secrets exist under **Settings** → **Secrets and variables** → **Actions**
+- Check the names are exactly `DOCKER_USERNAME` and `DOCKER_TOKEN`
+- Check the token has not expired and has `Repo Read & Write` permission
+- After fixing, click **Re-run jobs** → **Re-run failed jobs** on the workflow page
+
+**Issue 4: Publish job fails at `docker build` with "no source files were specified"**
+
+The JAR wasn't downloaded into `target/`. Check that the `name:` in `upload-artifact` and `download-artifact` are both `app-jar`, and that `download-artifact` has `path: target`.
+
+**Issue 5: Test job fails**
+
+Run `mvn test` locally, fix the failing test, then commit and push again.
+
+---
+
+## Part 3 - Comparing CircleCI and GitHub Actions
+
+Put your Lesson 4.7 `.circleci/config.yml` next to your new `.github/workflows/ci.yml`. The pipeline is the same - only the syntax and where it runs are different.
+
+| Concept | CircleCI (managed CI service) | GitHub Actions (platform-integrated) |
+|---------|-------------------------------|--------------------------------------|
+| Config file | `.circleci/config.yml` | `.github/workflows/ci.yml` |
+| Trigger | Set up when you connect the project in CircleCI | `on: push` in the workflow file |
+| Runner / environment | `docker: - image: cimg/openjdk:21.0` | `runs-on: ubuntu-latest` + `actions/setup-java` |
+| Get the code | `- checkout` | `uses: actions/checkout` |
+| Run a command | `- run:` | `- run:` |
+| Cache dependencies | `restore_cache` / `save_cache` | `cache: maven` |
+| Share files between jobs | `persist_to_workspace` / `attach_workspace` | `upload-artifact` / `download-artifact` |
+| Docker | `setup_remote_docker` | Already on the runner |
+| Job order | `workflows:` → `requires:` | `needs:` on each job |
+| Secrets | Context `docker-hub` | Repository secrets |
+| Where you watch it | CircleCI dashboard (separate site) | **Actions** tab in your repository |
+
+**What's the same:**
+- YAML configuration stored in the repository
+- Build → test → publish jobs, each on a fresh machine
+- Jobs depend on earlier jobs, so a failed test stops the publish
+- Secrets are stored in the tool, never in the code
+
+**What's different:**
+- GitHub Actions lives inside GitHub - no separate account or project to connect
+- GitHub Actions builds pipelines from reusable **actions** (`uses:`)
+- CircleCI keeps the job order in one `workflows:` block; GitHub Actions puts `needs:` on each job
+- CircleCI also works with GitLab and Bitbucket; GitHub Actions only runs for GitHub repositories
+
+---
+
+### 🏃 Activity 2 — Compare Your Two Pipelines (15 min)
+
+**Part A - Break the pipeline on purpose**
+
+1. In `DemoController.java`, change the message to `"DevOps demo - GitHub Actions is working!"` but **do not** update the test
+2. Commit and push to `main`
+3. In the Actions tab, watch what happens to the **test** and **publish** jobs
+4. Download the `test-reports` artifact and find the failure message
+5. Update `DemoControllerTest.java` to expect the new message, run `mvn test` locally, then commit and push again - all three jobs should pass
+
+**Part B - Discuss with a partner**
+
+1. Which config file was easier to read? Which keywords map directly between the two?
+2. Why does CircleCI need `setup_remote_docker` but GitHub Actions does not?
+3. Your company moves its code from GitHub to GitLab. Which pipeline still works, and which would you have to rewrite? What does this tell you about the trade-off of platform-integrated tools?
+
+> **Key takeaway:** Different tools, same concepts. Once you understand CI/CD, switching tools is mostly learning new syntax.
 
 ---
 
@@ -708,35 +650,32 @@ git push -u origin main
 
 You will receive 4 company scenario cards. For each scenario:
 1. Read the company requirements
-2. Discuss which CI/CD tool fits best
+2. Decide which **type** of CI/CD tool fits best, then pick a tool
 3. Justify your choice with 2-3 reasons
 
 ---
 
 ### Scenario 1: Early-Stage Startup
 
-**Company:** MobileApp Inc.  
-**Team Size:** 5 developers  
-**Tech Stack:** React Native, Node.js  
+**Company:** MobileApp Inc.
+**Team Size:** 5 developers
+**Tech Stack:** React Native, Node.js
 **Requirements:**
-- Need to launch MVP in 3 months
-- Limited DevOps expertise
-- Using GitHub for code
-- Budget: $100/month
+- Need to launch an MVP in 3 months
+- No DevOps engineers
+- All code is on GitHub
 
-**Question:** Which CI/CD tool should they use?
+**Question:** Which type of CI/CD tool should they use, and which tool?
 
 <details>
 <summary>Suggested Answer</summary>
 
-**Best Choice:** CircleCI or GitHub Actions
+**Best Choice:** Platform-integrated - GitHub Actions
 
 **Reasons:**
-1. Quick setup (5 minutes) - no time to manage Jenkins
-2. Good free tier for small team
-3. Integrates with GitHub (already using it)
-4. Minimal DevOps knowledge needed
-5. Cloud-based (no server maintenance)
+1. Their code is already on GitHub - nothing extra to set up
+2. No servers to maintain, which suits a team with no DevOps engineers
+3. Fast to get started, so the team can focus on the MVP
 
 </details>
 
@@ -744,29 +683,25 @@ You will receive 4 company scenario cards. For each scenario:
 
 ### Scenario 2: Financial Services Company
 
-**Company:** SecureBank Corp.  
-**Team Size:** 50 developers  
-**Tech Stack:** Java, Spring Boot, Oracle DB  
+**Company:** SecureBank Corp.
+**Team Size:** 50 developers
+**Tech Stack:** Java, Spring Boot, Oracle DB
 **Requirements:**
 - Strict security and compliance rules
-- Cannot use cloud-based CI/CD (data security)
-- Need to host everything on-premise
-- Have dedicated DevOps team (5 people)
+- Code and build data cannot leave the company's own servers
+- Dedicated DevOps team (5 people)
 
-**Question:** Which CI/CD tool should they use?
+**Question:** Which type of CI/CD tool should they use, and which tool?
 
 <details>
 <summary>Suggested Answer</summary>
 
-**Best Choice:** Jenkins (self-hosted)
+**Best Choice:** Self-hosted - Jenkins (or TeamCity)
 
 **Reasons:**
-1. Can host on their own secure servers
-2. No data leaves their infrastructure
-3. Free and open-source (no licensing costs)
-4. Highly customizable for security requirements
-5. Have DevOps team to manage and maintain it
-6. Proven in enterprise/banking environments
+1. Runs on their own secure servers, so no data leaves their infrastructure
+2. Highly customisable to meet security and compliance requirements
+3. They have a DevOps team to install, maintain and secure it
 
 </details>
 
@@ -774,59 +709,51 @@ You will receive 4 company scenario cards. For each scenario:
 
 ### Scenario 3: Growing SaaS Company
 
-**Company:** ProjectTool SaaS  
-**Team Size:** 20 developers  
-**Tech Stack:** Python, React, PostgreSQL  
+**Company:** ProjectTool SaaS
+**Team Size:** 20 developers
+**Tech Stack:** Python, React, PostgreSQL
 **Requirements:**
-- Using GitLab for version control
-- Need integrated issue tracking + CI/CD
-- Want one platform for everything
-- Budget: $300/month
+- All code is on GitLab
+- Want issue tracking, code and CI/CD in one platform
+- Want as few tools to manage as possible
 
-**Question:** Which CI/CD tool should they use?
+**Question:** Which type of CI/CD tool should they use, and which tool?
 
 <details>
 <summary>Suggested Answer</summary>
 
-**Best Choice:** GitLab CI/CD
+**Best Choice:** Platform-integrated - GitLab CI/CD
 
 **Reasons:**
-1. Already using GitLab for version control
-2. Integrated issue tracking, CI/CD, and container registry
-3. No need to link multiple tools/accounts
-4. One platform = easier management
-5. Good free tier, can upgrade as they grow
-6. Built-in features for the full DevOps lifecycle
+1. Already using GitLab - CI/CD is built in
+2. One platform for issues, code, pipelines and container registry
+3. No extra accounts or integrations to look after
 
 </details>
 
 ---
 
-### Scenario 4: Microsoft-Focused Enterprise
+### Scenario 4: Digital Agency
 
-**Company:** EnterpriseApps Ltd.  
-**Team Size:** 100 developers  
-**Tech Stack:** C#, .NET, SQL Server  
+**Company:** PixelWorks Agency
+**Team Size:** 15 developers
+**Tech Stack:** Java, Node.js, mobile apps
 **Requirements:**
-- Hosting on Azure Cloud
-- Using Azure services (Storage, SQL, etc.)
-- Need enterprise project management features
-- Budget: No constraint
+- Client projects are spread across GitHub, GitLab and Bitbucket (each client chooses)
+- Want one CI tool and one dashboard for every project
+- No time to maintain their own servers
 
-**Question:** Which CI/CD tool should they use?
+**Question:** Which type of CI/CD tool should they use, and which tool?
 
 <details>
 <summary>Suggested Answer</summary>
 
-**Best Choice:** Azure DevOps
+**Best Choice:** Managed CI service - CircleCI
 
 **Reasons:**
-1. Native integration with Azure services
-2. Best support for .NET/C# projects
-3. Combines boards, repos, pipelines, artifacts
-4. Tight integration with Visual Studio
-5. Enterprise features built-in
-6. Single Microsoft ecosystem
+1. Connects to GitHub, GitLab and Bitbucket, so every project uses the same tool
+2. One dashboard and one config style across all clients
+3. Runs on the provider's machines - no servers to maintain
 
 </details>
 
@@ -836,31 +763,27 @@ You will receive 4 company scenario cards. For each scenario:
 
 ### Signs You Might Need to Switch
 
-**1. From Cloud to Self-Hosted (e.g., CircleCI → Jenkins):**
-- Company grows and has security/compliance needs
-- Costs become too high on cloud platform
-- Need more customization and control
+**1. Managed or platform-integrated → Self-hosted (e.g. CircleCI → Jenkins):**
+- New security or compliance rules require builds on your own servers
+- You need full control or special hardware
 
-**2. From Self-Hosted to Cloud (e.g., Jenkins → GitLab CI/CD):**
-- Small DevOps team can't maintain Jenkins
-- Want to reduce maintenance overhead
-- Need faster setup for new projects
+**2. Self-hosted → Managed or platform-integrated (e.g. Jenkins → GitHub Actions):**
+- The team can no longer keep up with maintaining the CI server
+- You want to spend less time on upkeep and more on delivery
 
-**3. From One Cloud to Another (e.g., CircleCI → GitHub Actions):**
-- Changing Git platform (GitLab → GitHub)
-- Need tighter integration with repository
-- Cost optimization
+**3. One platform to another (e.g. GitLab CI/CD → GitHub Actions):**
+- The company moves its code to a different Git platform
+- You want CI/CD that lives right next to your code
 
 ### Migration Considerations
 
 **Before switching, consider:**
-1. **Learning curve** - Team needs to learn new tool
-2. **Migration effort** - Converting all pipelines
-3. **Cost comparison** - Total cost of ownership
-4. **Feature parity** - New tool supports all needs
-5. **Integration** - Works with existing tools
+1. **Learning curve** - the team needs to learn the new tool
+2. **Migration effort** - every pipeline must be rewritten
+3. **Features** - the new tool supports everything you rely on
+4. **Integrations** - it works with your existing tools
 
-**Rule of thumb:** Don't switch tools just for fun. Switch when clear benefits outweigh migration costs.
+**Rule of thumb:** Don't switch tools just for fun. Switch when the benefits clearly outweigh the cost of migrating.
 
 ---
 
@@ -868,8 +791,24 @@ You will receive 4 company scenario cards. For each scenario:
 
 ### What You Learned
 
-1. ✅ CI/CD tool landscape and categories
-2. ✅ Comparison of CircleCI, GitLab CI/CD, Jenkins, and Azure DevOps
-3. ✅ When to use which tool based on requirements
-4. ✅ Similarities and differences in configurations
-5. ✅ How to evaluate and select CI/CD tools
+1. ✅ The three types of CI/CD tools: platform-integrated, managed CI services and self-hosted
+2. ✅ How to choose a type of tool, and a tool, for a given use case
+3. ✅ How to build a GitHub Actions workflow for devops-demo
+4. ✅ How CircleCI and GitHub Actions express the same pipeline in different syntax
+
+### Key Takeaways
+
+- **Pick the type first, then the tool.** Who should run it, and where does your code live?
+- **Platform-integrated** (GitHub Actions, GitLab CI/CD) - simplest; tied to your Git platform
+- **Managed CI service** (CircleCI, Travis CI) - works across Git platforms; one more vendor
+- **Self-hosted** (Jenkins, TeamCity) - full control; you maintain everything
+- **The concepts transfer.** Triggers, jobs, steps, runners and secrets exist in every tool
+
+---
+
+## Additional Resources
+
+- [GitHub Actions Documentation](https://docs.github.com/en/actions)
+- [CircleCI Documentation](https://circleci.com/docs/)
+- [GitLab CI/CD Documentation](https://docs.gitlab.com/ci/)
+- [Jenkins Documentation](https://www.jenkins.io/doc/)
